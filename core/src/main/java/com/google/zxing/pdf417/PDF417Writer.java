@@ -82,6 +82,11 @@ public final class PDF417Writer implements Writer {
         Charset encoding = Charset.forName(hints.get(EncodeHintType.CHARACTER_SET).toString());
         encoder.setEncoding(encoding);
       }
+
+      // Check for PDF410 Macro options
+      if (hints.containsKey(EncodeHintType.PDF417_MACRO_META_DATA)) {
+        encoder.setMetaData((PDF417MacroMetadata)hints.get(EncodeHintType.PDF417_MACRO_META_DATA));
+      }
     }
 
     return bitMatrixFromEncoder(encoder, contents, errorCorrectionLevel, width, height, margin);

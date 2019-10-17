@@ -665,6 +665,9 @@ public final class PDF417 {
     String highLevel = PDF417HighLevelEncoder.encodeHighLevel(msg, compaction, encoding);
     int sourceCodeWords = highLevel.length();
 
+    String macroCodeWords = getMacroBlock();
+    sourceCodeWords += macroCodeWords.length();
+
     int[] dimension = determineDimensions(sourceCodeWords, errorCorrectionCodeWords);
 
     int cols = dimension[0];
@@ -677,13 +680,20 @@ public final class PDF417 {
       throw new WriterException(
           "Encoded message contains too many code words, message too big (" + msg.length() + " bytes)");
     }
+
     int n = sourceCodeWords + pad + 1;
     StringBuilder sb = new StringBuilder(n);
     sb.append((char) n);
     sb.append(highLevel);
+
     for (int i = 0; i < pad; i++) {
       sb.append((char) 900); //PAD characters
     }
+
+    if (macroCodeWords != null && !macroCodeWords.isEmpty() && !macroCodeWords.isBlank()) {
+      sb.append(macroCodeWords);
+    }
+
     String dataCodewords = sb.toString();
 
     //3. step: Error correction
@@ -692,6 +702,128 @@ public final class PDF417 {
     //4. step: low-level encoding
     barcodeMatrix = new BarcodeMatrix(rows, cols);
     encodeLowLevel(dataCodewords + ec, cols, rows, errorCorrectionLevel, barcodeMatrix);
+  }
+
+  private String getMacroBlock() {
+    StringBuilder macroCodewords = null;
+
+    if (this.metadata != null) {
+        macroCodewords = new StringBuilder();
+
+        if (this.metadata.getSegmentIndex() < 0) {
+            throw new WriterException(
+                "The macro segment index must be greater than or equal to 0."
+            );
+        }
+
+        if (this.metadata.getSegmentIndex() >= this.metadata.getSegmentCount()) {
+            throw new WriterException(
+                "The macro segment index must be less than the segment count."
+            );
+        }
+
+        if (this.metadata.getSegmentCount() < 1) {
+            throw new WriterException(
+                "The macro segment count must be greater than 0."
+            );
+        }
+
+        macroCodewords.append((char)MACRO_SEGMENT_ID);
+
+        // Segment index
+        String segmentIndex = PDF417HighLevelEncoder.encodeHighLevel(String.format("%05d", this.metadata.getSegmentIndex()), Compaction.NUMERIC, encoding);
+
+        // Remove the latch to numeric prefix.
+        segmentIndex = segmentIndex.replace("" + (char)0x386, "");
+        macroCodewords.append(segmentIndex);
+
+        // File Id
+        String fileId = PDF417HighLevelEncoder.encodeHighLevel(this.metadata.getFileId(), Compaction.TEXT, encoding);
+        macroCodewords.append(fileId);
+
+        // Optional segment count
+        if (this.metadata.getSegmentCount() > 0)
+        {
+            appendMacroOptionalField(PDF417OptionalMacroFields.SegmentCount, String.format("%05d", this.metadata.getSegmentCount()), macroCodewords);
+        }
+
+        // Optional time stamp
+        if (this.metadata.getTimestamp() != null) {
+            appendMacroOptionalField(PDF417OptionalMacroFields.TimeStamp, this.metadata.getTimestamp().toString(), macroCodewords);
+        }
+
+        // Optional sender
+        if (this.metadata.getSender() != null && !this.metadata.getSender().isEmpty() && !this.metadata.getSender().isBlank())
+        {
+            appendMacroOptionalField(PDF417OptionalMacroFields.Sender, this.metadata.getSender(), macroCodewords);
+        }
+
+        // Optional addressee
+        if (this.metadata.getAddressee() != null && !this.metadata.getAddressee().isEmpty() && !this.metadata.getAddressee().isBlank())
+        {
+            appendMacroOptionalField(PDF417OptionalMacroFields.Addressee, this.metadata.getAddressee(), macroCodewords);
+        }
+
+        // Optional file size
+        if (this.metadata.getFileSize() != null)
+        {
+            appendMacroOptionalField(PDF417OptionalMacroFields.FileSize, String.format("%010d", this.metadata.getFileSize()), macroCodewords);
+        }
+
+        // Optional checksum
+        if (this.metadata.getChecksum() != null)
+        {
+            appendMacroOptionalField(PDF417OptionalMacroFields.Checksum, this.metadata.getChecksum().toString(), macroCodewords);
+        }
+
+        // Last segment
+        if (metadata.getSegmentIndex() == metadata.getSegmentCount() - 1)
+        {
+            macroCodewords.append((char)MACRO_LAST_SEGMENT);
+        }
+    }
+
+    return macroCodewords.toString();
+}
+
+  private int appendMacroOptionalField(PDF417OptionalMacroFields field, String value, StringBuilder macroCodewords) {
+    int cw = 0;
+    String encodedValue = null;
+
+    switch (field) {
+      case SegmentCount:
+      case TimeStamp:
+      case FileSize:
+      case Checksum:
+        encodedValue = PDF417HighLevelEncoder.encodeHighLevel(value, Compaction.NUMERIC, encoding);
+        // Remove the latch to numeric prefix.
+        encodedValue = encodedValue.replace("" + (char)0x386, "");
+        break;
+      case FileName:
+      case Sender:
+      case Addressee:
+        encodedValue = PDF417HighLevelEncoder.encodeHighLevel(value, Compaction.TEXT, encoding);
+        // Remove the latch to text prefix.
+        encodedValue = encodedValue.replace("" + (char)0x384, "");
+        break;
+    }
+
+    if (encodedValue != null && !encodedValue.isEmpty()) {
+        // Optional field separator tag & increment the source code word count
+        macroCodewords.append((char)MACRO_OPTIONAL_FIELD_TAG);
+        cw++;
+
+        // Time stamp field designator & increment the source code word count
+        macroCodewords.append((char)field.getValue());
+        cw++;
+
+        // Append the encoded value to the macro meta data & set the source code word count
+        macroCodewords.append(encodedValue);
+        cw += encodedValue.length();
+
+        return cw;
+    }
+
   }
 
   /**
@@ -778,6 +910,13 @@ public final class PDF417 {
    */
   public void setEncoding(Charset encoding) {
     this.encoding = encoding;
+  }
+
+  /**
+   * @param metadata sets the metadata.
+   */
+  public void setMetaData(PDF417MacroMetadata metadata) {
+    this.metadata = metadata;
   }
 
 }

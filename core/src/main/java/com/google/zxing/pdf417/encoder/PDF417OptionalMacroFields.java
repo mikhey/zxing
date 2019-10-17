@@ -73,4 +73,8 @@ public enum PDF417OptionalMacroFields {
   private PDF417OptionalMacroFields(int value) {
     this.value = value;
   }
+
+  public int getValue() {
+    return this.value;
+  }
 }

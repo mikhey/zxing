@@ -88,6 +88,12 @@ public enum EncodeHintType {
   PDF417_DIMENSIONS,
 
   /**
+   * Specifies that the PDF417 will contain macro metadata.
+   * {@link com.google.zxing.pdf417.PDF417MacroMetadata}
+   */
+  PDF417_MACRO_META_DATA,
+
+  /**
    * Specifies the required number of layers for an Aztec code.
    * A negative number (-1, -2, -3, -4) specifies a compact Aztec code.
    * 0 indicates to use the minimum number of layers (the default).
