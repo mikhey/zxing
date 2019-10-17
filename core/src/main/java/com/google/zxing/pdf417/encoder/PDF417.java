@@ -20,9 +20,10 @@
 
 package com.google.zxing.pdf417.encoder;
 
-import com.google.zxing.WriterException;
-
 import java.nio.charset.Charset;
+
+import com.google.zxing.WriterException;
+import com.google.zxing.pdf417.PDF417MacroMetadata;
 
 /**
  * Top-level class for the logic part of the PDF417 implementation.
@@ -37,6 +38,19 @@ public final class PDF417 {
    * The stop pattern (18 bits)
    */
   private static final int STOP_PATTERN = 0x3fa29;
+
+  /**
+   * The Macro last segment code word
+   */
+  private static final int MACRO_LAST_SEGMENT = 0x39A;
+
+  /**
+   * The Macro segment identifier code word
+   */
+  private static final int MACRO_SEGMENT_ID = 0x3A0;
+
+  private const int MACRO_OPTIONAL_FIELD_TAG = 0x39B;
+
 
   /**
    * The codeword table from the Annex A of ISO/IEC 15438:2001(E).
@@ -511,11 +525,13 @@ public final class PDF417 {
   private static final float PREFERRED_RATIO = 3.0f;
   private static final float DEFAULT_MODULE_WIDTH = 0.357f; //1px in mm
   private static final float HEIGHT = 2.0f; //mm
+  // TODO: Add macro constants and properties.
 
   private BarcodeMatrix barcodeMatrix;
   private boolean compact;
   private Compaction compaction;
   private Charset encoding;
+  private PDF417MacroMetadata metadata;
   private int minCols;
   private int maxCols;
   private int maxRows;
@@ -765,4 +781,3 @@ public final class PDF417 {
   }
 
 }
-
