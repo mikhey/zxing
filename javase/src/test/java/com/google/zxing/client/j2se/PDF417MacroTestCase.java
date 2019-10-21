@@ -14,48 +14,51 @@
  * limitations under the License.
  */
 
-package com.google.zxing.pdf417;
-
-import com.google.zxing.BinaryBitmap;
-import com.google.zxing.BarcodeFormat;
-import com.google.zxing.DecodeHintType;
-import com.google.zxing.common.BitMatrix;
-import com.google.zxing.common.HybridBinarizer;
-import com.google.zxing.EncodeHintType;
-import com.google.zxing.LuminanceSource;
-import com.google.zxing.Reader;
-import com.google.zxing.ReaderException;
-import com.google.zxing.Result;
-import com.google.zxing.ResultMetadataType;
-import com.google.zxing.Writer;
-import com.google.zxing.WriterException;
-
-import com.google.zxing.client.j2se.BufferedImageLuminanceSource;
-import com.google.zxing.client.j2se.MatrixToImageWriter;
-
-import org.junit.Assert;
-import org.junit.Test;
-
-import static org.junit.Assert.assertTrue;
+package com.google.zxing.client.j2se;
 
 import java.awt.image.BufferedImage;
-import java.lang.Long;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 
+import com.google.zxing.BarcodeFormat;
+import com.google.zxing.BinaryBitmap;
+import com.google.zxing.BufferedImageLuminanceSource;
+import com.google.zxing.ChecksumException;
+import com.google.zxing.DecodeHintType;
+import com.google.zxing.EncodeHintType;
+import com.google.zxing.FormatException;
+import com.google.zxing.LuminanceSource;
+import com.google.zxing.NotFoundException;
+import com.google.zxing.ReaderException;
+import com.google.zxing.Result;
+import com.google.zxing.ResultMetadataType;
+import com.google.zxing.WriterException;
+import com.google.zxing.common.BitMatrix;
+import com.google.zxing.common.HybridBinarizer;
+import com.google.zxing.pdf417.PDF417MacroMetadata;
+import com.google.zxing.pdf417.PDF417Reader;
+import com.google.zxing.pdf417.PDF417ResultMetadata;
+import com.google.zxing.pdf417.PDF417Writer;
+
+import org.junit.Assert;
+import org.junit.Test;
 
 /**
- * This class tests Macro PDF417 barcode encoding/decoding functionality.  It ensures that information can be
- * encoded into several barcodes and can be properly decoded/combined again to yield the original data content.
+ * This class tests Macro PDF417 barcode encoding/decoding functionality. It
+ * ensures that information can be encoded into several barcodes and can be
+ * properly decoded/combined again to yield the original data content.
  *
  * @author Micah Miller
  */
 public final class PDF417MacroTestCase {
+
+  private PDF417Writer writer = new PDF417Writer();
+
   @Test
-  public void testMacroPdf417Creation() throws WriterException, ReaderException {
+  public void testMacroPdf417Creation() throws WriterException, ReaderException, Exception {
     List<Result> results = new ArrayList<Result>();
 
     int width = 300;
@@ -78,7 +81,8 @@ public final class PDF417MacroTestCase {
         decodedResults++;
         Map<ResultMetadataType, Object> resultMetaData = result.getResultMetadata();
         if (resultMetaData != null && resultMetaData.get(ResultMetadataType.PDF417_EXTRA_METADATA) != null) {
-          PDF417ResultMetadata metadata = (PDF417ResultMetadata)resultMetaData.get(ResultMetadataType.PDF417_EXTRA_METADATA);
+          PDF417ResultMetadata metadata = (PDF417ResultMetadata) resultMetaData
+              .get(ResultMetadataType.PDF417_EXTRA_METADATA);
 
           if (metadata != null) {
             decodedResultWithMetadata++;
@@ -87,12 +91,12 @@ public final class PDF417MacroTestCase {
       }
     }
 
-    assertTrue(decodedResults == 2 && decodedResultWithMetadata == 2);
+    Assert.assertTrue(decodedResults == 2 && decodedResultWithMetadata == 2);
   }
 
   private BufferedImage generateImageOne(int width, int height, int ec, boolean compact, int margin) {
     PDF417MacroMetadata macroData = new PDF417MacroMetadata();
-    Map<EncodeHintType,Object> hints = new EnumMap<>(EncodeHintType.class);
+    Map<EncodeHintType, Object> hints = new EnumMap<>(EncodeHintType.class);
 
     hints.put(EncodeHintType.ERROR_CORRECTION, ec);
     hints.put(EncodeHintType.MARGIN, margin);
@@ -110,14 +114,16 @@ public final class PDF417MacroTestCase {
 
     hints.put(EncodeHintType.PDF417_MACRO_META_DATA, macroData);
 
-    BitMatrix matrix = new PDF417Writer().encode("Hello", BarcodeFormat.PDF_417, width, height, hints);
+    BitMatrix matrix = writer.encode("Hello", BarcodeFormat.PDF_417, width, height, hints);
 
     return MatrixToImageWriter.toBufferedImage(matrix);
   }
 
-  private BufferedImage generateImageTwo(int width, int height, int ec, boolean compact, int margin) {
+  private BufferedImage generateImageTwo(int width, int height, int ec, boolean compact, int margin)
+      throws WriterException {
+
     PDF417MacroMetadata macroData = new PDF417MacroMetadata();
-    Map<EncodeHintType,Object> hints = new EnumMap<>(EncodeHintType.class);
+    Map<EncodeHintType, Object> hints = new EnumMap<>(EncodeHintType.class);
 
     hints.put(EncodeHintType.ERROR_CORRECTION, ec);
     hints.put(EncodeHintType.MARGIN, margin);
@@ -129,10 +135,12 @@ public final class PDF417MacroTestCase {
 
     hints.put(EncodeHintType.PDF417_MACRO_META_DATA, macroData);
 
-    BitMatrix matrix = new PDF417Writer().encode(" World", BarcodeFormat.PDF_417, width, height, hints);
+    BitMatrix matrix = writer.encode(" World", BarcodeFormat.PDF_417, width, height, hints);
+
+    return MatrixToImageWriter.toBufferedImage(matrix);
   }
 
-  private Result decodeImage(BufferedImage image) {
+  private Result decodeImage(BufferedImage image) throws NotFoundException, FormatException, ChecksumException {
     Result result = null;
     Map<DecodeHintType, Object> decodeHints = new EnumMap<>(DecodeHintType.class);
     List<BarcodeFormat> decoderFormats = new ArrayList<>();
@@ -147,7 +155,7 @@ public final class PDF417MacroTestCase {
     LuminanceSource source = new BufferedImageLuminanceSource(image);
     BinaryBitmap bitmap = new BinaryBitmap(new HybridBinarizer(source));
 
-    Result resultOne = reader.decode(bitmap, decodeHints);
+    result = reader.decode(bitmap, decodeHints);
 
     return result;
   }

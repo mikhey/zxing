@@ -70,7 +70,7 @@ public enum PDF417OptionalMacroFields {
 
   private int value;
 
-  private PDF417OptionalMacroFields(int value) {
+  PDF417OptionalMacroFields(int value) {
     this.value = value;
   }
 

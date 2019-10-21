@@ -24,9 +24,9 @@ import com.google.zxing.common.BitMatrix;
 import com.google.zxing.pdf417.encoder.Compaction;
 import com.google.zxing.pdf417.encoder.Dimensions;
 import com.google.zxing.pdf417.encoder.PDF417;
-
 import java.nio.charset.Charset;
 import java.util.Map;
+
 
 /**
  * @author Jacob Haynes
@@ -85,7 +85,7 @@ public final class PDF417Writer implements Writer {
 
       // Check for PDF410 Macro options
       if (hints.containsKey(EncodeHintType.PDF417_MACRO_META_DATA)) {
-        encoder.setMetaData((PDF417MacroMetadata)hints.get(EncodeHintType.PDF417_MACRO_META_DATA));
+        encoder.setMetaData((PDF417MacroMetadata) hints.get(EncodeHintType.PDF417_MACRO_META_DATA));
       }
     }
 
